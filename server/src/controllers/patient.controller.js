@@ -3,6 +3,20 @@ import { success, error } from '../utils/response.js';
 
 const IMMUTABLE_FIELDS = ['id', 'created_at', 'updated_at', 'status', 'registration_source'];
 
+// Attach a formatted patient number — PID-00001
+const withPid = (p) => p ? { ...p, patient_number: `SEDA-${String(p.id).padStart(5, '0')}` } : p;
+const withPidMany = (arr) => arr.map(withPid);
+
+export const listPatients = async (req, res) => {
+  try {
+    const patients = withPidMany(await Patient.listAll());
+    return success(res, { patients });
+  } catch (err) {
+    console.error('listPatients error:', err);
+    return error(res, 'Something went wrong', 500);
+  }
+};
+
 export const registerPatient = async (req, res) => {
   try {
     const { first_name, last_name, date_of_birth, sex, phone, consent_given } = req.body;
@@ -23,7 +37,7 @@ export const registerPatient = async (req, res) => {
       registered_by: req.user.id,
     });
 
-    const patient = await Patient.findById(insertId);
+    const patient = withPid(await Patient.findById(insertId));
     return success(res, { patient }, 201);
   } catch (err) {
     console.error('registerPatient error:', err);
@@ -64,7 +78,7 @@ export const selfRegister = async (req, res) => {
 
 export const getPatient = async (req, res) => {
   try {
-    const patient = await Patient.findById(req.params.id);
+    const patient = withPid(await Patient.findById(req.params.id));
     if (!patient) {
       return error(res, 'Patient not found', 404);
     }
@@ -81,7 +95,7 @@ export const searchPatients = async (req, res) => {
     if (!q || q.trim().length < 2) {
       return error(res, 'Search query must be at least 2 characters', 400);
     }
-    const patients = await Patient.search(q.trim());
+    const patients = withPidMany(await Patient.search(q.trim()));
     return success(res, { patients });
   } catch (err) {
     console.error('searchPatients error:', err);
@@ -91,7 +105,7 @@ export const searchPatients = async (req, res) => {
 
 export const getPendingPatients = async (req, res) => {
   try {
-    const patients = await Patient.findPending();
+    const patients = withPidMany(await Patient.findPending());
     return success(res, { patients });
   } catch (err) {
     console.error('getPendingPatients error:', err);
@@ -105,7 +119,7 @@ export const activatePatient = async (req, res) => {
     if (affected === 0) {
       return error(res, 'Patient not found or already active', 404);
     }
-    const patient = await Patient.findById(req.params.id);
+    const patient = withPid(await Patient.findById(req.params.id));
     return success(res, { patient });
   } catch (err) {
     console.error('activatePatient error:', err);
@@ -127,7 +141,7 @@ export const updatePatient = async (req, res) => {
       return error(res, 'Patient not found', 404);
     }
 
-    const patient = await Patient.findById(req.params.id);
+    const patient = withPid(await Patient.findById(req.params.id));
     return success(res, { patient });
   } catch (err) {
     console.error('updatePatient error:', err);

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import requireAuth from '../middleware/auth.middleware.js';
 import requireRole from '../middleware/role.middleware.js';
 import {
+  listPatients,
   registerPatient,
   getPatient,
   searchPatients,
@@ -12,7 +13,8 @@ import {
 
 const router = Router();
 
-// GET /search must come before GET /:id so Express doesn't treat 'search' as an id
+// Static paths must come before /:id
+router.get('/', requireAuth, listPatients);
 router.get('/search', requireAuth, searchPatients);
 router.get('/pending', requireAuth, requireRole('receptionist', 'admin'), getPendingPatients);
 

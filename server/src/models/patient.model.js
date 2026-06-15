@@ -1,5 +1,16 @@
 import pool from '../config/db.js';
 
+export const listAll = async () => {
+  const [rows] = await pool.execute(
+    `SELECT id, first_name, middle_name, last_name, date_of_birth, phone, parish, status, blood_type
+     FROM patients
+     WHERE status != 'deleted'
+     ORDER BY last_name ASC, first_name ASC
+     LIMIT 200`
+  );
+  return rows;
+};
+
 export const findById = async (id) => {
   const [rows] = await pool.execute(
     "SELECT * FROM patients WHERE id = ? AND status != 'deleted' LIMIT 1",
@@ -15,6 +26,7 @@ export const search = async (query) => {
      FROM patients
      WHERE (first_name LIKE ? OR last_name LIKE ? OR phone LIKE ?)
        AND status = 'active'
+     ORDER BY last_name ASC, first_name ASC
      LIMIT 20`,
     [term, term, term]
   );
@@ -29,6 +41,7 @@ export const create = async (patientData) => {
     marital_status, blood_type, insurance_provider, nhf_card_number,
     allergies_summary, registration_source, status,
     consent_given, consent_date, registered_by,
+    emergency_contact_name, emergency_contact_phone, emergency_contact_relation,
   } = patientData;
 
   const [result] = await pool.execute(
@@ -38,8 +51,9 @@ export const create = async (patientData) => {
       preferred_contact, address, parish, occupation,
       marital_status, blood_type, insurance_provider, nhf_card_number,
       allergies_summary, registration_source, status,
-      consent_given, consent_date, registered_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      consent_given, consent_date, registered_by,
+      emergency_contact_name, emergency_contact_phone, emergency_contact_relation
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       first_name, middle_name ?? null, last_name, date_of_birth, sex,
       national_id ?? null, trn ?? null, phone, phone_secondary ?? null, email ?? null,
@@ -47,6 +61,7 @@ export const create = async (patientData) => {
       marital_status ?? null, blood_type ?? null, insurance_provider ?? null, nhf_card_number ?? null,
       allergies_summary ?? null, registration_source, status,
       consent_given ? 1 : 0, consent_date ?? null, registered_by ?? null,
+      emergency_contact_name ?? null, emergency_contact_phone ?? null, emergency_contact_relation ?? null,
     ]
   );
   return result.insertId;
@@ -59,6 +74,7 @@ export const update = async (id, fields) => {
     'preferred_contact', 'address', 'parish', 'occupation',
     'marital_status', 'blood_type', 'insurance_provider', 'nhf_card_number',
     'allergies_summary', 'consent_given', 'consent_date',
+    'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
   ];
 
   const entries = Object.entries(fields).filter(([key]) => allowed.includes(key));
